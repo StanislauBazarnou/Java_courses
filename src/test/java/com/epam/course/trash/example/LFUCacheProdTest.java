@@ -1,0 +1,1 @@
+package com.epam.course.trash.example;
