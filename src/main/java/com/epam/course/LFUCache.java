@@ -30,16 +30,13 @@ public class LFUCache<K, V> {
         if (!cache.containsKey(key)) {
             return null;
         }
-
         CacheItem<V> item = cache.get(key);
         long timeSinceLastAccess = System.currentTimeMillis() - item.timestamp;
         if (timeSinceLastAccess > timeToLiveInMillis) {
             log.info("Time since last access ({} ms) is greater than TTL: {} ms", timeSinceLastAccess, timeToLiveInMillis);
             return null;
         }
-
         calculateFrequency(key);
-
         return item.item;
     }
 
@@ -76,7 +73,7 @@ public class LFUCache<K, V> {
         cache.put(key, new CacheItem<>(value, System.currentTimeMillis()));
         long timeTaken = System.nanoTime() - startTime;
         timeSpent.add(timeTaken);
-        System.out.println("Time spent on adding new value to cache: " + timeSpent);
+        log.info("Time spent on adding new value to cache: " + timeSpent);
         countOfGetsMap.put(key, 0);
         frequencyMap.computeIfAbsent(0, k -> new LinkedList<>()).add(key);
     }
@@ -84,11 +81,11 @@ public class LFUCache<K, V> {
     public void getAverageTimeSpent() {
         long averageTimeSpent = timeSpent.sumThenReset() / (cache.size() + 1);
         statistics.setAverageInsertTime(averageTimeSpent);
-        System.out.println("Average time spent: " + averageTimeSpent);
+        log.info("Average time spent: " + averageTimeSpent);
     }
 
     public void showStatistics() {
-        System.out.println("Number of cache evictions: " + statistics.getNumberOfCacheEvictions());
+        log.info("Number of cache evictions: " + statistics.getNumberOfCacheEvictions());
     }
 
     private void evictCache() {
@@ -102,7 +99,7 @@ public class LFUCache<K, V> {
         }
 
         frequencyMap.get(lowestCount).remove(0);
-        System.out.println("The " + lowestCount + " value is removed from cache");
+        log.info("The " + lowestCount + " value is removed from cache");
         int currentEvictions = statistics.getNumberOfCacheEvictions();
         statistics.setNumberOfCacheEvictions(currentEvictions + 1);
 

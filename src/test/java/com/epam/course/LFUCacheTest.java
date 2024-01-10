@@ -3,19 +3,11 @@ package com.epam.course;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
-import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 @Slf4j
 class LFUCacheTest {
@@ -34,18 +26,18 @@ class LFUCacheTest {
         LFUCache<Integer, String> cache = new LFUCache<>(cacheSize, 10);
 
         // When insert 110 items
-        for(int i = 0; i < 110; i++) {
+        for (int i = 0; i < 110; i++) {
             cache.put(i, "Value " + i);
         }
 
         // Then check the size is within the limit of 100
         assertEquals(cacheSize, cache.getCache().size());
         // Verify that the first 10 items were evicted
-        for(int i = 0; i < 10; i++) {
+        for (int i = 0; i < 10; i++) {
             assertNull(cache.get(i));
         }
         // Verify that the last 100 items are still in the cache
-        for(int i = 10; i < 110; i++) {
+        for (int i = 10; i < 110; i++) {
             assertEquals("Value " + i, cache.get(i));
         }
     }
@@ -60,16 +52,16 @@ class LFUCacheTest {
         LFUCache<Integer, String> cache = new LFUCache<>(cacheSize, 10);
 
         // When insert 5 items
-        for(int i = 0; i < cacheSize; i++) {
+        for (int i = 0; i < cacheSize; i++) {
             cache.put(i, "Value " + i);
         }
-        // Access some of the items to change their frequency
-        for(int i = 0; i < cacheSize; i++) {
+        // Get some of the items to change their frequency
+        for (int i = 0; i < cacheSize; i++) {
             cache.get(i);
         }
-        // Access an item again, so now the least frequently used items should be any of 1-4
+        // Get an item again, so the least frequently used items should be any of 1-4
         cache.get(0);
-        // Now add a sixth item. This should evict one of the less frequently used items (1, 2, 3, or 4)
+        // Add a sixth item. This should evict one of the less frequently used items (1, 2, 3, or 4)
         cache.put(cacheSize, "Value " + cacheSize);
 
         // Then verify cache size
@@ -78,8 +70,8 @@ class LFUCacheTest {
         assertNotNull(cache.get(0)); // The frequently accessed item should still be present
         assertNotNull(cache.get(5)); // The recently added item should be present
         int nullCount = 0;
-        for(int i = 1; i < cacheSize; i++) {
-            if(cache.get(i) == null) nullCount++;
+        for (int i = 1; i < cacheSize; i++) {
+            if (cache.get(i) == null) nullCount++;
         }
         assertEquals(1, nullCount); // One of the items from 1 to 4 should have been evicted
     }
@@ -112,7 +104,7 @@ class LFUCacheTest {
         LFUCache<Integer, String> cache = new LFUCache<>(cacheSize, 10);
 
         // When insert cacheSize+2 items. This will cause two items eventually to be evicted
-        for(int i = 0; i < cacheSize + 2; i++) {
+        for (int i = 0; i < cacheSize + 2; i++) {
             cache.put(i, "Value " + i);
         }
 
@@ -212,60 +204,9 @@ class LFUCacheTest {
         }));
     }
 
-    @Test
-    void usageTest() throws InterruptedException {
-        // given
-        LFUCache<Integer, Integer> cache = new LFUCache<>(100, DEFAULT_TTL);
-        Statistics statistics = new Statistics();
-
-        // when
-        Thread producer = new Thread(() -> {
-            for (int i = 1; i < 10; i++) {
-                cache.put(i, i);
-                log.info("Value is added to cache: {}", i);
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-
-        producer.start();
-
-        int numberOfConsumers = 30;
-//        ExecutorService executorService = Executors.newFixedThreadPool(numberOfConsumers); // 100 пример с Дорожек
-        ScheduledExecutorService executorService = Executors.newScheduledThreadPool(numberOfConsumers); // 100 пример с Дорожек
-        for (int consumerIndex = 0; consumerIndex < numberOfConsumers; consumerIndex++) {
-            executorService.schedule(() -> {
-                for (int i = 1; i < 10; i++) {
-                    try {
-                        Thread.sleep(300);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    Integer value = cache.get(i);
-                    log.info("Value is read from cache: {}", value);
-                }
-            }, (consumerIndex/3)*3, TimeUnit.SECONDS);
-        }
-        executorService.awaitTermination(10L, TimeUnit.SECONDS);
-
-        // show statistics
-        // Runtime.getRuntime().addShutdownHook(new Thread(statistics::getAverageTimeSpent));
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            cache.getAverageTimeSpent();
-            cache.showStatistics();
-        }));
-    }
-
-    // then
-//    assertEquals(100,cache.getCountOfGetsMap().
-//
-//    get(1));
-    // TODO Add assertions
-
-
+    /**
+     * Check that ttl is working as expected
+     */
     @Test
     void timeBasedOnLastAccessTest() {
         // given
@@ -292,17 +233,17 @@ class LFUCacheTest {
     }
 
     /**
-     In this test, we start 10 threads which each put a value into the cache and then retrieve it.
-     The assertion checks that the retrieved value matches the expected value. Since the cache put
-     and get operations are run in separate threads, this test checks the cache's correctness under
-     concurrent access
+     * In this test, we start 10 threads which each put a value into the cache and then retrieve it.
+     * The assertion checks that the retrieved value matches the expected value. Since the cache put
+     * and get operations are run in separate threads, this test checks the cache's correctness under
+     * concurrent access
      */
     @Test
     void testConcurrentAccess() throws InterruptedException {
         LFUCache<Integer, String> cache = new LFUCache<>(3, 5);
 
         List<Thread> threads = new ArrayList<>();
-        for(int i = 0; i < 10; i++) {
+        for (int i = 0; i < 10; i++) {
             int finalI = i;
             Thread thread = new Thread(() -> {
                 cache.put(finalI, "Value " + finalI);
@@ -313,7 +254,7 @@ class LFUCacheTest {
             thread.start();
         }
 
-        for(Thread thread : threads) {
+        for (Thread thread : threads) {
             thread.join();
         }
     }
